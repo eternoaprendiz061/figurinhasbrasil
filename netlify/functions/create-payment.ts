@@ -14,29 +14,34 @@ export async function handler(event: any) {
         description: 'Figurinha personalizada',
         payment_method_id: 'pix',
         payer: {
-          email: 'teste@test.com',
+          email: 'zxwellzika@gmail.com',
           first_name: body.fullName || 'Cliente',
         },
       },
     })
 
-    const data = payment.point_of_interaction?.transaction_data
+    console.log('MP RESPONSE:', JSON.stringify(payment, null, 2))
+
+    const pix = payment?.point_of_interaction?.transaction_data
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        id: payment.id,
-        qr_code: data?.qr_code || '',
-        qr_code_base64: data?.qr_code_base64 || '',
+        paymentId: payment.id,
+        pixCode: pix?.qr_code ?? '',
+        qrCode:
+          pix?.qr_code_base64
+            ? `data:image/png;base64,${pix.qr_code_base64}`
+            : '',
       }),
     }
-  } catch (error) {
-    console.error('ERRO MP:', error)
+  } catch (error: any) {
+    console.error('ERRO MP COMPLETO:', error)
 
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: 'Erro ao criar pagamento',
+        error: error?.message || 'Erro ao criar pagamento',
       }),
     }
   }
