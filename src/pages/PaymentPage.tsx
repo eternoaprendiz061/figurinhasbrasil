@@ -113,10 +113,10 @@ export function PaymentPage() {
 
       {/* QR CODE */}
       <div className="bg-white p-4 rounded mb-4 text-center">
-        {payment?.qrCode ? (
+        {payment && payment.qrCode ? (
           <img src={payment.qrCode} className="w-48 mx-auto" />
         ) : (
-          <p>QR Code não disponível</p>
+          <p>Gerando QR Code...</p>
         )}
       </div>
 
