@@ -32,7 +32,9 @@ export function PaymentPage() {
     try {
       const response = await fetch('/.netlify/functions/create-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           fullName: stickerData?.fullName || 'Cliente',
         }),
@@ -48,8 +50,10 @@ export function PaymentPage() {
 
       setPayment({
         id: data.paymentId || data.id,
-        pixCode: data.qr_code || '',
-        qrCode: data.qr_code_base64
+        pixCode: data.pixCode || data.qr_code || '',
+        qrCode: data.qrCode
+          ? data.qrCode
+          : data.qr_code_base64
           ? `data:image/png;base64,${data.qr_code_base64}`
           : null,
       })
@@ -106,17 +110,25 @@ export function PaymentPage() {
           />
           <div>
             <p>{stickerData.fullName}</p>
-            <p className="text-sm text-gray-500">{stickerData.country}</p>
+            <p className="text-sm text-gray-500">
+              {stickerData.country}
+            </p>
           </div>
         </div>
       )}
 
       {/* QR CODE */}
       <div className="bg-white p-4 rounded mb-4 text-center">
-        {payment && payment.qrCode ? (
-          <img src={payment.qrCode} className="w-48 mx-auto" />
+        {!payment ? (
+          <p>Gerando pagamento...</p>
+        ) : payment.qrCode ? (
+          <img
+            src={payment.qrCode}
+            alt="QR Code Pix"
+            className="w-48 mx-auto"
+          />
         ) : (
-          <p>Gerando QR Code...</p>
+          <p>QR Code não disponível</p>
         )}
       </div>
 
