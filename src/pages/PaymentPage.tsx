@@ -2,6 +2,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Copy, Check, CreditCard } from 'lucide-react'
 import { Button } from '../components/Button'
+import { supabase } from '../lib/supabase'
 
 interface StickerData {
   fullName: string
@@ -27,6 +28,29 @@ export function PaymentPage() {
 
     createPayment()
   }, [])
+
+  // 🔥 CHECAGEM DE STATUS (NOVO)
+  useEffect(() => {
+    if (!payment) return
+
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase
+          .from('payments')
+          .select('status')
+          .eq('id', payment.id)
+          .maybeSingle()
+
+        if (data?.status === 'approved') {
+          navigate('/sucesso')
+        }
+      } catch (err) {
+        console.error('Erro status payment:', err)
+      }
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [payment])
 
   const createPayment = async () => {
     try {
@@ -89,50 +113,36 @@ export function PaymentPage() {
   return (
     <div className="min-h-screen p-6 max-w-md mx-auto">
 
-      {/* VOLTAR */}
       <button onClick={() => navigate('/criar')} className="mb-4">
         ← Voltar
       </button>
 
-      {/* HEADER */}
       <div className="text-center mb-6">
         <CreditCard className="mx-auto mb-2" />
         <h1 className="text-2xl font-bold">Pagamento via Pix</h1>
         <p className="text-green-600 font-bold">R$ 4,99</p>
       </div>
 
-      {/* PREVIEW */}
       {stickerData && (
         <div className="bg-white p-3 rounded mb-4 flex gap-2 items-center">
-          <img
-            src={stickerData.photoPreview}
-            className="w-12 h-12 rounded"
-          />
+          <img src={stickerData.photoPreview} className="w-12 h-12 rounded" />
           <div>
             <p>{stickerData.fullName}</p>
-            <p className="text-sm text-gray-500">
-              {stickerData.country}
-            </p>
+            <p className="text-sm text-gray-500">{stickerData.country}</p>
           </div>
         </div>
       )}
 
-      {/* QR CODE */}
       <div className="bg-white p-4 rounded mb-4 text-center">
         {!payment ? (
           <p>Gerando pagamento...</p>
         ) : payment.qrCode ? (
-          <img
-            src={payment.qrCode}
-            alt="QR Code Pix"
-            className="w-48 mx-auto"
-          />
+          <img src={payment.qrCode} className="w-48 mx-auto" />
         ) : (
           <p>QR Code não disponível</p>
         )}
       </div>
 
-      {/* PIX CODE */}
       <div className="bg-white p-3 rounded mb-4">
         <p className="text-sm mb-2">Código Pix:</p>
 
@@ -149,7 +159,6 @@ export function PaymentPage() {
         </div>
       </div>
 
-      {/* INFO */}
       <p className="text-center text-sm">
         Pague e receba sua figurinha ⚡
       </p>
