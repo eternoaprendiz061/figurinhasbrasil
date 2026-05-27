@@ -103,21 +103,30 @@ export function PaymentPage() {
 
   // 🔥 BOTÃO DE TESTE (REMOVE DEPOIS)
   const handleFakeApprove = async () => {
-    if (!payment) return
+  try {
+    console.log("SIMULANDO PAGAMENTO:", payment)
 
-    await supabase
+    if (!payment?.id) {
+      alert("payment.id não existe")
+      return
+    }
+
+    const { error } = await supabase
       .from('payments')
       .update({ status: 'approved' })
       .eq('id', payment.id)
-  }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Carregando pagamento...</p>
-      </div>
-    )
+    if (error) {
+      console.error("ERRO SUPABASE:", error)
+      alert("Erro no Supabase: " + error.message)
+      return
+    }
+
+    alert("Pagamento simulado com sucesso!")
+  } catch (err) {
+    console.error(err)
   }
+}
 
   return (
     <div className="min-h-screen p-6 max-w-md mx-auto">
