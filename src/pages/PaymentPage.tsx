@@ -2,7 +2,6 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Copy, Check, CreditCard } from 'lucide-react'
 import { Button } from '../components/Button'
-import { supabase } from '../lib/supabase'
 
 interface StickerData {
   fullName: string
@@ -20,7 +19,6 @@ export function PaymentPage() {
   const [payment, setPayment] = useState<any>(null)
   const [copied, setCopied] = useState(false)
 
-  // 🔥 CRIAR PAGAMENTO
   useEffect(() => {
     if (!stickerId) {
       navigate('/')
@@ -30,6 +28,7 @@ export function PaymentPage() {
     createPayment()
   }, [])
 
+  // 🔥 CRIA PAGAMENTO
   const createPayment = async () => {
     try {
       const response = await fetch('/.netlify/functions/create-payment', {
@@ -50,7 +49,7 @@ export function PaymentPage() {
 
       setPayment({
         id: data.paymentId || data.id,
-        pixCode: data.pixCode || data.qr_code || '',
+        pixCode: data.pixCode || '',
         qrCode:
           data.qrCode ||
           (data.qr_code_base64
@@ -66,69 +65,12 @@ export function PaymentPage() {
     }
   }
 
-  // 🔥 SIMULA PAGAMENTO (TESTE)
-  const handleFakeApprove = async () => {
-    try {
-      console.log("SIMULANDO PAGAMENTO:", payment)
-
-      if (!payment?.id) {
-        alert("payment.id não existe")
-        return
-      }
-
-      const { error } = await supabase
-        .from('payments')
-        .update({ status: 'approved' })
-        .eq('id', payment.id)
-
-      if (error) {
-        console.error(error)
-        alert("Erro Supabase: " + error.message)
-        return
-      }
-
-      alert("Pagamento simulado com sucesso ✔")
-    } catch (err) {
-      console.error(err)
-    }
+  // 🔥 SIMULA PAGAMENTO (SEM SUPABASE)
+  const handleFakeApprove = () => {
+    navigate('/sucesso', {
+      state: stickerData,
+    })
   }
-
-  // 🔥 POLLING CORRIGIDO
-  useEffect(() => {
-    if (!payment?.id) return
-
-    const interval = setInterval(async () => {
-      try {
-        console.log("checando status...")
-
-        const { data, error } = await supabase
-          .from('payments')
-          .select('status')
-          .eq('id', payment.id)
-
-        if (error) {
-          console.error(error)
-          return
-        }
-
-        console.log("STATUS:", data)
-
-        if (data && data.length > 0 && data[0].status === 'approved') {
-          console.log("APROVADO!")
-
-          clearInterval(interval)
-
-          navigate(`/gerando/${stickerId}`, {
-            state: stickerData,
-          })
-        }
-      } catch (err) {
-        console.error(err)
-      }
-    }, 2000)
-
-    return () => clearInterval(interval)
-  }, [payment?.id])
 
   const handleCopy = async () => {
     if (!payment?.pixCode) return
@@ -161,7 +103,10 @@ export function PaymentPage() {
 
       {stickerData && (
         <div className="bg-white p-3 rounded mb-4 flex gap-2 items-center">
-          <img src={stickerData.photoPreview} className="w-12 h-12 rounded" />
+          <img
+            src={stickerData.photoPreview}
+            className="w-12 h-12 rounded"
+          />
           <div>
             <p>{stickerData.fullName}</p>
             <p className="text-sm text-gray-500">{stickerData.country}</p>
@@ -170,9 +115,7 @@ export function PaymentPage() {
       )}
 
       <div className="bg-white p-4 rounded mb-4 text-center">
-        {!payment ? (
-          <p>Gerando pagamento...</p>
-        ) : payment.qrCode ? (
+        {payment?.qrCode ? (
           <img src={payment.qrCode} className="w-48 mx-auto" />
         ) : (
           <p>QR Code não disponível</p>
@@ -202,7 +145,7 @@ export function PaymentPage() {
       {/* 🔥 BOTÃO TESTE */}
       <button
         onClick={handleFakeApprove}
-        className="w-full bg-orange-500 text-white p-2 rounded"
+        className="w-full bg-green-500 text-white p-2 rounded"
       >
         SIMULAR PAGAMENTO
       </button>
