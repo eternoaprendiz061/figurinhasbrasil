@@ -20,6 +20,7 @@ export function PaymentPage() {
   const [payment, setPayment] = useState<any>(null)
   const [copied, setCopied] = useState(false)
 
+  // 🔥 CRIAR PAGAMENTO
   useEffect(() => {
     if (!stickerId) {
       navigate('/')
@@ -28,34 +29,6 @@ export function PaymentPage() {
 
     createPayment()
   }, [])
-
-  // 🔥 STATUS CHECK (REAL FUTURE WEBHOOK)
-  useEffect(() => {
-    if (!payment) return
-
-    const interval = setInterval(async () => {
-      try {
-        const { data } = await supabase
-          .from('payments')
-          .select('status')
-          .eq('id', payment.id)
-          .maybeSingle()
-
-        if (data?.status === 'approved') {
-          clearInterval(interval)
-
-          // 👉 vai direto pra geração da figurinha
-          navigate(`/gerando/${stickerId}`, {
-            state: stickerData,
-          })
-        }
-      } catch (err) {
-        console.error('Erro status payment:', err)
-      }
-    }, 3000)
-
-    return () => clearInterval(interval)
-  }, [payment])
 
   const createPayment = async () => {
     try {
@@ -85,13 +58,77 @@ export function PaymentPage() {
             : null),
       })
     } catch (error) {
-      console.error('Erro ao criar pagamento:', error)
+      console.error(error)
       alert('Erro ao criar pagamento')
       navigate('/')
     } finally {
       setLoading(false)
     }
   }
+
+  // 🔥 SIMULA PAGAMENTO (TESTE)
+  const handleFakeApprove = async () => {
+    try {
+      console.log("SIMULANDO PAGAMENTO:", payment)
+
+      if (!payment?.id) {
+        alert("payment.id não existe")
+        return
+      }
+
+      const { error } = await supabase
+        .from('payments')
+        .update({ status: 'approved' })
+        .eq('id', payment.id)
+
+      if (error) {
+        console.error(error)
+        alert("Erro Supabase: " + error.message)
+        return
+      }
+
+      alert("Pagamento simulado com sucesso ✔")
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  // 🔥 POLLING CORRIGIDO
+  useEffect(() => {
+    if (!payment?.id) return
+
+    const interval = setInterval(async () => {
+      try {
+        console.log("checando status...")
+
+        const { data, error } = await supabase
+          .from('payments')
+          .select('status')
+          .eq('id', payment.id)
+
+        if (error) {
+          console.error(error)
+          return
+        }
+
+        console.log("STATUS:", data)
+
+        if (data && data.length > 0 && data[0].status === 'approved') {
+          console.log("APROVADO!")
+
+          clearInterval(interval)
+
+          navigate(`/gerando/${stickerId}`, {
+            state: stickerData,
+          })
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [payment?.id])
 
   const handleCopy = async () => {
     if (!payment?.pixCode) return
@@ -101,32 +138,13 @@ export function PaymentPage() {
     setTimeout(() => setCopied(false), 3000)
   }
 
-  // 🔥 BOTÃO DE TESTE (REMOVE DEPOIS)
-  const handleFakeApprove = async () => {
-  try {
-    console.log("SIMULANDO PAGAMENTO:", payment)
-
-    if (!payment?.id) {
-      alert("payment.id não existe")
-      return
-    }
-
-    const { error } = await supabase
-      .from('payments')
-      .update({ status: 'approved' })
-      .eq('id', payment.id)
-
-    if (error) {
-      console.error("ERRO SUPABASE:", error)
-      alert("Erro no Supabase: " + error.message)
-      return
-    }
-
-    alert("Pagamento simulado com sucesso!")
-  } catch (err) {
-    console.error(err)
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Carregando pagamento...</p>
+      </div>
+    )
   }
-}
 
   return (
     <div className="min-h-screen p-6 max-w-md mx-auto">
@@ -181,12 +199,12 @@ export function PaymentPage() {
         Pague e receba sua figurinha ⚡
       </p>
 
-      {/* 🔥 BOTÃO DE TESTE */}
+      {/* 🔥 BOTÃO TESTE */}
       <button
         onClick={handleFakeApprove}
         className="w-full bg-orange-500 text-white p-2 rounded"
       >
-        SIMULAR PAGAMENTO (TESTE)
+        SIMULAR PAGAMENTO
       </button>
 
     </div>
