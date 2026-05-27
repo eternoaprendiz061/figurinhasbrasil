@@ -29,7 +29,7 @@ export function PaymentPage() {
     createPayment()
   }, [])
 
-  // 🔥 CHECAGEM DE STATUS (NOVO)
+  // 🔥 STATUS CHECK (REAL FUTURE WEBHOOK)
   useEffect(() => {
     if (!payment) return
 
@@ -42,7 +42,12 @@ export function PaymentPage() {
           .maybeSingle()
 
         if (data?.status === 'approved') {
-          navigate('/sucesso')
+          clearInterval(interval)
+
+          // 👉 vai direto pra geração da figurinha
+          navigate(`/gerando/${stickerId}`, {
+            state: stickerData,
+          })
         }
       } catch (err) {
         console.error('Erro status payment:', err)
@@ -68,18 +73,16 @@ export function PaymentPage() {
 
       console.log('PAYMENT:', data)
 
-      if (data.error) {
-        throw new Error(data.error)
-      }
+      if (data.error) throw new Error(data.error)
 
       setPayment({
         id: data.paymentId || data.id,
         pixCode: data.pixCode || data.qr_code || '',
-        qrCode: data.qrCode
-          ? data.qrCode
-          : data.qr_code_base64
-          ? `data:image/png;base64,${data.qr_code_base64}`
-          : null,
+        qrCode:
+          data.qrCode ||
+          (data.qr_code_base64
+            ? `data:image/png;base64,${data.qr_code_base64}`
+            : null),
       })
     } catch (error) {
       console.error('Erro ao criar pagamento:', error)
@@ -93,13 +96,19 @@ export function PaymentPage() {
   const handleCopy = async () => {
     if (!payment?.pixCode) return
 
-    try {
-      await navigator.clipboard.writeText(payment.pixCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 3000)
-    } catch (error) {
-      console.error('Erro ao copiar:', error)
-    }
+    await navigator.clipboard.writeText(payment.pixCode)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 3000)
+  }
+
+  // 🔥 BOTÃO DE TESTE (REMOVE DEPOIS)
+  const handleFakeApprove = async () => {
+    if (!payment) return
+
+    await supabase
+      .from('payments')
+      .update({ status: 'approved' })
+      .eq('id', payment.id)
   }
 
   if (loading) {
@@ -159,9 +168,18 @@ export function PaymentPage() {
         </div>
       </div>
 
-      <p className="text-center text-sm">
+      <p className="text-center text-sm mb-4">
         Pague e receba sua figurinha ⚡
       </p>
+
+      {/* 🔥 BOTÃO DE TESTE */}
+      <button
+        onClick={handleFakeApprove}
+        className="w-full bg-orange-500 text-white p-2 rounded"
+      >
+        SIMULAR PAGAMENTO (TESTE)
+      </button>
+
     </div>
   )
 }
